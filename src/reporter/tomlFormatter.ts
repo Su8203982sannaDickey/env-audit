@@ -1,49 +1,43 @@
 import { Report, Issue } from "./types";
 
-export function escapeTomlString(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+function escapeTomlString(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 }
 
-export function formatLocations(issue: Issue): string {
+function formatLocations(issue: Issue): string {
   if (!issue.locations || issue.locations.length === 0) return "";
   return issue.locations
-    .map((loc) => `"${escapeTomlString(loc.file)}:${loc.line ?? 0}"`)
-    .join(", ");
+    .map((loc) => `  [[issues.locations]]\n  file = "${escapeTomlString(loc.file)}"\n  line = ${loc.line ?? 0}`)
+    .join("\n");
 }
 
-export function formatIssueToml(issue: Issue, index: number): string {
-  const lines: string[] = [];
-  lines.push(`[[issues]]`);
-  lines.push(`id = ${index + 1}`);
-  lines.push(`variable = "${escapeTomlString(issue.variable)}"`); 
-  lines.push(`type = "${escapeTomlString(issue.type)}"`); 
-  lines.push(`severity = "${escapeTomlString(issue.severity)}"`); 
-  lines.push(`message = "${escapeTomlString(issue.message)}"`); 
+function formatIssueToml(issue: Issue): string {
+  const lines: string[] = [
+    `[[issues]]`,
+    `variable = "${escapeTomlString(issue.variable)}"`,
+    `type = "${escapeTomlString(issue.type)}"`,
+    `severity = "${escapeTomlString(issue.severity)}"`,
+    `message = "${escapeTomlString(issue.message)}"`,
+  ];
   const locs = formatLocations(issue);
-  if (locs) {
-    lines.push(`locations = [${locs}]`);
-  } else {
-    lines.push(`locations = []`);
-  }
+  if (locs) lines.push(locs);
   return lines.join("\n");
 }
 
 export function formatToml(report: Report): string {
-  const lines: string[] = [];
-  lines.push(`[summary]`);
-  lines.push(`total = ${report.summary.total}`);
-  lines.push(`missing = ${report.summary.missing}`);
-  lines.push(`duplicate = ${report.summary.duplicate}`);
-  lines.push(`undocumented = ${report.summary.undocumented}`);
-  lines.push(`errors = ${report.summary.errors}`);
-  lines.push(`warnings = ${report.summary.warnings}`);
-  lines.push(`info = ${report.summary.info}`);
-  lines.push("");
+  const sections: string[] = [];
+
+  sections.push(`[summary(`total = ${report.summary.total}`);
+  sections.push(`missing = ${report.summary.missing}`);
+  sections.push(`duplicate = ${report.summary.duplicate}`);
+  sections.push(`undocumented = ${report.summary.undocumented}`);
+  sections.push(`scannedFiles = ${report.summary.scannedFiles}`);
+  sections.push(`envFiles = ${report.summary.envFiles}`);
+
   if (report.issues.length > 0) {
-    report.issues.forEach((issue, i) => {
-      lines.push(formatIssueToml(issue, i));
-      lines.push("");
-    });
+    sections.push("");
+    sections.push(report.issues.map(formatIssueToml).join("\n\n"));
   }
-  return lines.join("\n").trimEnd() + "\n";
+
+  return sections.join("\n") + "\n";
 }
