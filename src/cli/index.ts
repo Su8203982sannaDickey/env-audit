@@ -1,8 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import { auditEnvVariables } from "../scanner";
-import { buildReport } from "../reporter/reportBuilder";
 import {
+  buildReport,
+  formatOutput,
   formatHtml,
   formatMarkdown,
   formatConsole,
@@ -18,11 +19,14 @@ import {
   formatDiff,
   formatTable,
   formatGithubActions,
+  formatCompact,
+  formatTap,
+  formatCheckstyle,
 } from "../reporter";
 import { Report } from "../reporter/types";
 
 export type OutputFormat =
-  | "console"
+  | "text"
   | "json"
   | "html"
   | "markdown"
@@ -36,14 +40,17 @@ export type OutputFormat =
   | "badge"
   | "diff"
   | "table"
-  | "github-actions";
+  | "github-actions"
+  | "compact"
+  | "tap"
+  | "checkstyle";
 
 export function getFormat(args: string[]): OutputFormat {
   const idx = args.indexOf("--format");
   if (idx !== -1 && args[idx + 1]) {
     return args[idx + 1] as OutputFormat;
   }
-  return "console";
+  return "text";
 }
 
 export function getDir(args: string[]): string {
@@ -54,36 +61,40 @@ export function getDir(args: string[]): string {
   return process.cwd();
 }
 
-export function getOutput(args: string[]): string | undefined {
+export function getOutput(args: string[]): string | null {
   const idx = args.indexOf("--output");
   if (idx !== -1 && args[idx + 1]) {
-    return args[idx + 1];
+    return path.resolve(args[idx + 1]);
   }
-  return undefined;
+  return null;
 }
 
 export function applyFormat(report: Report, format: OutputFormat): string {
   switch (format) {
-    case "html":            return formatHtml(report);
-    case "markdown":        return formatMarkdown(report);
-    case "csv":             return formatCsv(report);
-    case "json":            return formatJson(report);
-    case "xml":             return formatXml(report);
-    case "yaml":            return formatYaml(report);
-    case "sarif":           return formatSarif(report);
-    case "toml":            return formatToml(report);
-    case "junit":           return formatJunit(report);
-    case "dotenv":          return formatDotenv(report);
-    case "badge":           return formatBadge(report);
-    case "diff":            return formatDiff(report);
-    case "table":           return formatTable(report);
-    case "github-actions":  return formatGithubActions(report);
-    case "console":
-    default:                return formatConsole(report);
+    case "json": return formatJson(report);
+    case "html": return formatHtml(report);
+    case "markdown": return formatMarkdown(report);
+    case "csv": return formatCsv(report);
+    case "xml": return formatXml(report);
+    case "yaml": return formatYaml(report);
+    case "sarif": return formatSarif(report);
+    case "toml": return formatToml(report);
+    case "junit": return formatJunit(report);
+    case "dotenv": return formatDotenv(report);
+    case "badge": return formatBadge(report);
+    case "diff": return formatDiff(report);
+    case "table": return formatTable(report);
+    case "github-actions": return formatGithubActions(report);
+    case "compact": return formatCompact(report);
+    case "tap": return formatTap(report);
+    case "checkstyle": return formatCheckstyle(report);
+    case "text":
+    default:
+      return formatConsole(report);
   }
 }
 
-async function main(): Promise<void> {
+async function main() {
   const args = process.argv.slice(2);
   const dir = getDir(args);
   const format = getFormat(args);
@@ -91,13 +102,14 @@ async function main(): Promise<void> {
 
   const auditResult = await auditEnvVariables(dir);
   const report = buildReport(auditResult);
-  const formatted = applyFormat(report, format);
+  const output = applyFormat(report, format);
 
   if (outputFile) {
-    fs.writeFileSync(path.resolve(outputFile), formatted, "utf-8");
+    fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+    fs.writeFileSync(outputFile, output, "utf-8");
     console.log(`Report written to ${outputFile}`);
   } else {
-    console.log(formatted);
+    process.stdout.write(output + "\n");
   }
 }
 

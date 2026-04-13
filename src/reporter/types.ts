@@ -1,27 +1,30 @@
-export type Severity = "error" | "warning" | "info";
+export type IssueSeverity = "error" | "warning" | "info";
+
+export type IssueType = "missing" | "duplicate" | "undocumented";
 
 export interface Location {
   file: string;
   line?: number;
-  column?: number;
 }
 
 export interface Issue {
-  rule: string;
-  severity: Severity;
-  message: string;
+  type: IssueType;
+  severity: IssueSeverity;
   variable: string;
-  locations: Location[];
+  message: string;
+  locations?: Location[];
 }
 
 export interface Summary {
-  totalIssues: number;
+  total: number;
   errors: number;
   warnings: number;
   infos: number;
 }
 
 export interface Report {
-  issues: Issue[];
+  missing: Issue[];
+  duplicates: Issue[];
+  undocumented: Issue[];
   summary: Summary;
 }

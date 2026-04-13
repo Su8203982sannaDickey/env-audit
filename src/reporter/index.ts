@@ -15,4 +15,7 @@ export { formatBadge } from "./badgeFormatter";
 export { formatDiff } from "./diffFormatter";
 export { formatTable } from "./tableFormatter";
 export { formatGithubActions } from "./githubActionsFormatter";
-export type { Report, Issue, Summary, Severity, Location } from "./types";
+export { formatCompact } from "./compactFormatter";
+export { formatTap } from "./tapFormatter";
+export { formatCheckstyle } from "./checkstyleFormatter";
+export type { Report, Issue, Summary, Location, IssueSeverity, IssueType } from "./types";
