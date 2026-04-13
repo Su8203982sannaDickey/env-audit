@@ -1,3 +1,5 @@
-export { buildReport, buildSummary, issueFromMissing, issueFromDuplicate, issueFromUndocumented } from './reportBuilder';
-export { formatText, formatJson } from './formatters';
-export type { AuditReport, ReportIssue, ReportSummary, Severity } from './types';
+export { buildReport, buildSummary } from './reportBuilder';
+export { colorize, formatIssue, formatText, formatJson } from './formatters';
+export { formatHtml } from './htmlFormatter';
+export { formatMarkdown } from './markdownFormatter';
+export type { Report, Issue, Summary } from './types';
