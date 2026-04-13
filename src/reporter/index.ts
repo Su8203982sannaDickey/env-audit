@@ -11,4 +11,6 @@ export { formatSarif } from "./sariffFormatter";
 export { formatToml } from "./tomlFormatter";
 export { formatJunit } from "./junitFormatter";
 export { formatDotenv } from "./dotenvFormatter";
+export { formatBadge } from "./badgeFormatter";
+export { formatDiff } from "./diffFormatter";
 export type { Report, Issue, IssueSeverity, IssueType, Location, Summary } from "./types";
