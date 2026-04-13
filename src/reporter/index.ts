@@ -1,10 +1,12 @@
 export { buildReport, buildSummary } from "./reportBuilder";
-export { formatText, formatJson } from "./formatters";
+export { formatOutput } from "./formatters";
 export { formatHtml } from "./htmlFormatter";
 export { formatMarkdown } from "./markdownFormatter";
 export { formatConsole } from "./consoleFormatter";
 export { formatCsv } from "./csvFormatter";
-export { formatJson as formatJsonV2 } from "./jsonFormatter";
+export { formatJson } from "./jsonFormatter";
 export { formatXml } from "./xmlFormatter";
 export { formatYaml } from "./yamlFormatter";
+export { formatSarif } from "./sariffFormatter";
+export { formatToml } from "./tomlFormatter";
 export type { Report, Issue, IssueSeverity, IssueType, Location } from "./types";
