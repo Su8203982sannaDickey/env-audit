@@ -9,4 +9,6 @@ export { formatXml } from "./xmlFormatter";
 export { formatYaml } from "./yamlFormatter";
 export { formatSarif } from "./sariffFormatter";
 export { formatToml } from "./tomlFormatter";
-export type { Report, Issue, IssueSeverity, IssueType, Location } from "./types";
+export { formatJunit } from "./junitFormatter";
+export { formatDotenv } from "./dotenvFormatter";
+export type { Report, Issue, IssueSeverity, IssueType, Location, Summary } from "./types";
