@@ -1,5 +1,7 @@
 export { buildReport, buildSummary } from './reportBuilder';
-export { colorize, formatIssue, formatText, formatJson } from './formatters';
+export { formatText, formatJson } from './formatters';
 export { formatHtml } from './htmlFormatter';
 export { formatMarkdown } from './markdownFormatter';
-export type { Report, Issue, Summary } from './types';
+export { formatConsole } from './consoleFormatter';
+export { formatCsv } from './csvFormatter';
+export type { Report, Issue, Summary, IssueType, Severity } from './types';
