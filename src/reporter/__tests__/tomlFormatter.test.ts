@@ -1,80 +1,91 @@
-import { formatToml } from "../tomlFormatter";
+import { formatToml, escapeTomlString, formatLocations, formatIssueToml } from "../tomlFormatter";
 import { Report, Issue } from "../types";
 
-function makeReport(issues: Issue[] = []): Report {
-  const errors = issues.filter((i) => i.severity === "error").length;
-  const warnings = issues.filter((i) => i.severity === "warning").length;
-  const info = issues.filter((i) => i.severity === "info").length;
+function makeReport(overrides: Partial<Report> = {}): Report {
   return {
-    issues,
-    summary: { total: issues.length, errors, warnings, info },
+    summary: {
+      total: 2,
+      missing: 1,
+      duplicate: 0,
+      undocumented: 1,
+      errors: 1,
+      warnings: 1,
+      info: 0,
+    },
+    issues: [
+      {
+        variable: "DB_HOST",
+        type: "missing",
+        severity: "error",
+        message: "DB_HOST is missing from .env",
+        locations: [{ file: "src/db.ts", line: 10 }],
+      },
+      {
+        variable: "API_KEY",
+        type: "undocumented",
+        severity: "warning",
+        message: "API_KEY is undocumented",
+        locations: [],
+      },
+    ],
+    ...overrides,
   };
 }
 
-describe("formatToml", () => {
-  it("renders summary block with zero issues", () => {
-    const output = formatToml(makeReport([]));
-    expect(output).toContain("[summary]");
-    expect(output).toContain("total = 0");
-    expect(output).toContain("errors = 0");
-    expect(output).toContain("# No issues found");
+describe("escapeTomlString", () => {
+  it("escapes backslashes and double quotes", () => {
+    expect(escapeTomlString('path\\to\"file')).toBe('path\\\\to\\"file');
   });
 
-  it("renders a single issue correctly", () => {
+  it("returns unchanged string when no special chars", () => {
+    expect(escapeTomlString("simple")).toBe("simple");
+  });
+});
+
+describe("formatLocations", () => {
+  it("returns empty string when no locations", () => {
+    const issue: Issue = { variable: "X", type: "missing", severity: "error", message: "missing", locations: [] };
+    expect(formatLocations(issue)).toBe("");
+  });
+
+  it("formats locations correctly", () => {
     const issue: Issue = {
-      variable: "API_KEY",
-      severity: "error",
+      variable: "X",
       type: "missing",
-      message: "API_KEY is missing from .env",
-      locations: [{ file: "src/index.ts", line: 10 }],
+      severity: "error",
+      message: "missing",
+      locations: [{ file: "src/app.ts", line: 5 }],
     };
-    const output = formatToml(makeReport([issue]));
+    expect(formatLocations(issue)).toBe('"src/app.ts:5"');
+  });
+});
+
+describe("formatToml", () => {
+  it("includes summary block", () => {
+    const output = formatToml(makeReport());
+    expect(output).toContain("[summary]");
+    expect(output).toContain("total = 2");
+    expect(output).toContain("missing = 1");
+    expect(output).toContain("errors = 1");
+  });
+
+  it("includes issue blocks", () => {
+    const output = formatToml(makeReport());
     expect(output).toContain("[[issues]]");
-    expect(output).toContain('variable = "API_KEY"');
-    expect(output).toContain('severity = "error"');
+    expect(output).toContain('variable = "DB_HOST"');
     expect(output).toContain('type = "missing"');
-    expect(output).toContain("src/index.ts");
-    expect(output).toContain("line = 10");
-    expect(output).toContain("total = 1");
-    expect(output).toContain("errors = 1");
+    expect(output).toContain('severity = "error"');
   });
 
-  it("escapes special characters in strings", () => {
-    const issue: Issue = {
-      variable: "DB_PASS",
-      severity: "warning",
-      type: "undocumented",
-      message: 'Contains \"quotes\" and \\backslash',
-      locations: [],
-    };
-    const output = formatToml(makeReport([issue]));
-    expect(output).toContain('\\"quotes\\"');
-    expect(output).toContain("\\\\\\\\");
+  it("handles empty issues list", () => {
+    const report = makeReport({ issues: [], summary: { total: 0, missing: 0, duplicate: 0, undocumented: 0, errors: 0, warnings: 0, info: 0 } });
+    const output = formatToml(report);
+    expect(output).toContain("[summary]");
+    expect(output).not.toContain("[[issues]]");
   });
 
-  it("renders multiple issues", () => {
-    const issues: Issue[] = [
-      { variable: "A", severity: "error", type: "missing", message: "missing A", locations: [] },
-      { variable: "B", severity: "warning", type: "duplicate", message: "dup B", locations: [{ file: "x.ts", line: 1 }] },
-      { variable: "C", severity: "info", type: "undocumented", message: "undoc C", locations: [] },
-    ];
-    const output = formatToml(makeReport(issues));
-    expect(output).toContain("total = 3");
-    expect(output).toContain("errors = 1");
-    expect(output).toContain("warnings = 1");
-    expect(output).toContain("info = 1");
-    expect((output.match(/\[\[issues\]\]/g) || []).length).toBe(3);
-  });
-
-  it("handles issue with no locations", () => {
-    const issue: Issue = {
-      variable: "SECRET",
-      severity: "info",
-      type: "undocumented",
-      message: "SECRET is undocumented",
-      locations: [],
-    };
-    const output = formatToml(makeReport([issue]));
-    expect(output).toContain("locations = []");
+  it("ends with a newline", () => {
+    const output = formatToml(makeReport());
+    expect(output.endsWith("\n")).toBe(true);
   });
 });
