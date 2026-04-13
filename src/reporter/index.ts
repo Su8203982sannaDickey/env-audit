@@ -13,4 +13,5 @@ export { formatJunit } from "./junitFormatter";
 export { formatDotenv } from "./dotenvFormatter";
 export { formatBadge } from "./badgeFormatter";
 export { formatDiff } from "./diffFormatter";
+export { formatTable } from "./tableFormatter";
 export type { Report, Issue, IssueSeverity, IssueType, Location, Summary } from "./types";
