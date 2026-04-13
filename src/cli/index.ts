@@ -1,94 +1,107 @@
 import * as fs from "fs";
 import * as path from "path";
-import { parseEnvFilesInDirectory, findDuplicateKeys } from "../parser";
 import { auditEnvVariables } from "../scanner";
 import { buildReport } from "../reporter/reportBuilder";
-import { formatHtml } from "../reporter/htmlFormatter";
-import { formatMarkdown } from "../reporter/markdownFormatter";
-import { formatConsole } from "../reporter/consoleFormatter";
-import { formatCsv } from "../reporter/csvFormatter";
-import { formatJson } from "../reporter/jsonFormatter";
-import { formatXml } from "../reporter/xmlFormatter";
-import { formatYaml } from "../reporter/yamlFormatter";
-import { formatSarif } from "../reporter/sariffFormatter";
-import { formatToml } from "../reporter/tomlFormatter";
-import { formatJunit } from "../reporter/junitFormatter";
-import { formatDotenv } from "../reporter/dotenvFormatter";
-import { formatBadge } from "../reporter/badgeFormatter";
-import { formatDiff } from "../reporter/diffFormatter";
-import { formatTable } from "../reporter/tableFormatter";
+import {
+  formatHtml,
+  formatMarkdown,
+  formatConsole,
+  formatCsv,
+  formatJson,
+  formatXml,
+  formatYaml,
+  formatSarif,
+  formatToml,
+  formatJunit,
+  formatDotenv,
+  formatBadge,
+  formatDiff,
+  formatTable,
+  formatGithubActions,
+} from "../reporter";
+import { Report } from "../reporter/types";
 
-const FORMATS = [
-  "console", "json", "html", "markdown", "csv",
-  "xml", "yaml", "sarif", "toml", "junit",
-  "dotenv", "badge", "diff", "table",
-] as const;
+export type OutputFormat =
+  | "console"
+  | "json"
+  | "html"
+  | "markdown"
+  | "csv"
+  | "xml"
+  | "yaml"
+  | "sarif"
+  | "toml"
+  | "junit"
+  | "dotenv"
+  | "badge"
+  | "diff"
+  | "table"
+  | "github-actions";
 
-type Format = typeof FORMATS[number];
-
-export function getFormat(args: string[]): Format {
+export function getFormat(args: string[]): OutputFormat {
   const idx = args.indexOf("--format");
   if (idx !== -1 && args[idx + 1]) {
-    const val = args[idx + 1] as Format;
-    if (FORMATS.includes(val)) return val;
+    return args[idx + 1] as OutputFormat;
   }
   return "console";
 }
 
 export function getDir(args: string[]): string {
   const idx = args.indexOf("--dir");
-  if (idx !== -1 && args[idx + 1]) return path.resolve(args[idx + 1]);
+  if (idx !== -1 && args[idx + 1]) {
+    return path.resolve(args[idx + 1]);
+  }
   return process.cwd();
 }
 
-export function getOutput(args: string[]): string | null {
+export function getOutput(args: string[]): string | undefined {
   const idx = args.indexOf("--output");
-  if (idx !== -1 && args[idx + 1]) return path.resolve(args[idx + 1]);
-  return null;
+  if (idx !== -1 && args[idx + 1]) {
+    return args[idx + 1];
+  }
+  return undefined;
 }
 
-function applyFormat(format: Format, report: ReturnType<typeof buildReport>): string {
+export function applyFormat(report: Report, format: OutputFormat): string {
   switch (format) {
-    case "html": return formatHtml(report);
-    case "markdown": return formatMarkdown(report);
-    case "csv": return formatCsv(report);
-    case "json": return formatJson(report);
-    case "xml": return formatXml(report);
-    case "yaml": return formatYaml(report);
-    case "sarif": return formatSarif(report);
-    case "toml": return formatToml(report);
-    case "junit": return formatJunit(report);
-    case "dotenv": return formatDotenv(report);
-    case "badge": return formatBadge(report);
-    case "diff": return formatDiff(report);
-    case "table": return formatTable(report);
-    default: return formatConsole(report);
+    case "html":            return formatHtml(report);
+    case "markdown":        return formatMarkdown(report);
+    case "csv":             return formatCsv(report);
+    case "json":            return formatJson(report);
+    case "xml":             return formatXml(report);
+    case "yaml":            return formatYaml(report);
+    case "sarif":           return formatSarif(report);
+    case "toml":            return formatToml(report);
+    case "junit":           return formatJunit(report);
+    case "dotenv":          return formatDotenv(report);
+    case "badge":           return formatBadge(report);
+    case "diff":            return formatDiff(report);
+    case "table":           return formatTable(report);
+    case "github-actions":  return formatGithubActions(report);
+    case "console":
+    default:                return formatConsole(report);
   }
 }
 
-export async function run(args: string[]): Promise<void> {
+async function main(): Promise<void> {
+  const args = process.argv.slice(2);
   const dir = getDir(args);
   const format = getFormat(args);
-  const output = getOutput(args);
+  const outputFile = getOutput(args);
 
-  const envData = parseEnvFilesInDirectory(dir);
-  const duplicates = findDuplicateKeys(envData);
-  const auditResult = await auditEnvVariables(dir, envData);
-  const report = buildReport(auditResult, duplicates);
-  const formatted = applyFormat(format, report);
+  const auditResult = await auditEnvVariables(dir);
+  const report = buildReport(auditResult);
+  const formatted = applyFormat(report, format);
 
-  if (output) {
-    fs.mkdirSync(path.dirname(output), { recursive: true });
-    fs.writeFileSync(output, formatted, "utf-8");
-    console.log(`Report written to ${output}`);
+  if (outputFile) {
+    fs.writeFileSync(path.resolve(outputFile), formatted, "utf-8");
+    console.log(`Report written to ${outputFile}`);
   } else {
-    process.stdout.write(formatted + "\n");
+    console.log(formatted);
   }
 }
 
-if (require.main === module) {
-  run(process.argv.slice(2)).catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
-}
+main().catch((err) => {
+  console.error("env-audit error:", err);
+  process.exit(1);
+});

@@ -14,4 +14,5 @@ export { formatDotenv } from "./dotenvFormatter";
 export { formatBadge } from "./badgeFormatter";
 export { formatDiff } from "./diffFormatter";
 export { formatTable } from "./tableFormatter";
-export type { Report, Issue, IssueSeverity, IssueType, Location, Summary } from "./types";
+export { formatGithubActions } from "./githubActionsFormatter";
+export type { Report, Issue, Summary, Severity, Location } from "./types";

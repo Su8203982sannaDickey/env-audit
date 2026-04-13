@@ -1,19 +1,20 @@
-export type IssueSeverity = 'error' | 'warning' | 'info';
+export type Severity = "error" | "warning" | "info";
 
-export type IssueKind = 'missing' | 'duplicate' | 'undocumented';
-
-export interface Issue {
-  kind: IssueKind;
-  severity: IssueSeverity;
-  variable: string;
-  message: string;
-  file?: string;
+export interface Location {
+  file: string;
   line?: number;
+  column?: number;
 }
 
-export interface ReportSummary {
-  scannedFiles: number;
-  totalDefined: number;
+export interface Issue {
+  rule: string;
+  severity: Severity;
+  message: string;
+  variable: string;
+  locations: Location[];
+}
+
+export interface Summary {
   totalIssues: number;
   errors: number;
   warnings: number;
@@ -21,6 +22,6 @@ export interface ReportSummary {
 }
 
 export interface Report {
-  summary: ReportSummary;
   issues: Issue[];
+  summary: Summary;
 }
