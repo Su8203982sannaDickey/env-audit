@@ -1,50 +1,34 @@
-import { Report, Issue, IssueSeverity } from './types';
+import { Report, Issue } from './types';
+import { formatConsole } from './consoleFormatter';
 
-const SEVERITY_COLORS: Record<IssueSeverity, string> = {
-  error: '\x1b[31m',
-  warning: '\x1b[33m',
-  info: '\x1b[36m',
+type Color = 'red' | 'green' | 'yellow' | 'blue' | 'cyan' | 'bold' | 'dim' | 'reset';
+
+const ANSI: Record<Color, string> = {
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  reset: '\x1b[0m',
 };
 
-const RESET = '\x1b[0m';
-const BOLD = '\x1b[1m';
-
-function colorize(text: string, severity: IssueSeverity): string {
-  return `${SEVERITY_COLORS[severity]}${text}${RESET}`;
+export function colorize(text: string, color: Color): string {
+  const useColor = process.env.NO_COLOR === undefined && process.stdout.isTTY !== false;
+  if (!useColor) return text;
+  return `${ANSI[color]}${text}${ANSI.reset}`;
 }
 
-export function formatIssue(issue: Issue, useColor = true): string {
-  const prefix = `[${issue.severity.toUpperCase()}]`;
+export function formatIssue(issue: Issue): string {
   const location = issue.file
-    ? ` (${issue.file}${issue.line !== undefined ? `:${issue.line}` : ''})`
+    ? ` at ${issue.file}${issue.line ? `:${issue.line}` : ''}`
     : '';
-  const message = `${prefix} ${issue.variable}: ${issue.message}${location}`;
-  return useColor ? colorize(message, issue.severity) : message;
+  return `[${issue.severity.toUpperCase()}] ${issue.variable}: ${issue.message}${location}`;
 }
 
-export function formatText(report: Report, useColor = true): string {
-  const lines: string[] = [];
-
-  const title = 'env-audit Report';
-  lines.push(useColor ? `${BOLD}${title}${RESET}` : title);
-  lines.push('='.repeat(40));
-  lines.push(`Scanned: ${report.summary.scannedFiles} file(s)`);
-  lines.push(`Env variables defined: ${report.summary.totalDefined}`);
-  lines.push(`Issues found: ${report.summary.totalIssues}`);
-  lines.push('');
-
-  if (report.issues.length === 0) {
-    lines.push(useColor ? `\x1b[32mNo issues found.${RESET}` : 'No issues found.');
-  } else {
-    for (const issue of report.issues) {
-      lines.push(formatIssue(issue, useColor));
-    }
-  }
-
-  lines.push('');
-  lines.push(`Errors: ${report.summary.errors}  Warnings: ${report.summary.warnings}  Info: ${report.summary.infos}`);
-
-  return lines.join('\n');
+export function formatText(report: Report): string {
+  return formatConsole(report);
 }
 
 export function formatJson(report: Report): string {
