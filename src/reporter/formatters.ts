@@ -1,53 +1,52 @@
-import chalk from 'chalk';
-import { AuditReport, ReportIssue, Severity } from './types';
+import { Report, Issue, IssueSeverity } from './types';
 
-const severityColor: Record<Severity, (s: string) => string> = {
-  error: chalk.red,
-  warning: chalk.yellow,
-  info: chalk.cyan,
+const SEVERITY_COLORS: Record<IssueSeverity, string> = {
+  error: '\x1b[31m',
+  warning: '\x1b[33m',
+  info: '\x1b[36m',
 };
 
-const severityIcon: Record<Severity, string> = {
-  error: '✖',
-  warning: '⚠',
-  info: 'ℹ',
-};
+const RESET = '\x1b[0m';
+const BOLD = '\x1b[1m';
 
-function formatIssue(issue: ReportIssue): string {
-  const color = severityColor[issue.severity];
-  const icon = severityIcon[issue.severity];
-  const header = color(`${icon} [${issue.severity.toUpperCase()}] ${issue.variable}`);
-  const lines = [header, `  ${issue.message}`];
-  if (issue.locations && issue.locations.length > 0) {
-    lines.push(`  Locations: ${issue.locations.join(', ')}`);
-  }
-  return lines.join('\n');
+function colorize(text: string, severity: IssueSeverity): string {
+  return `${SEVERITY_COLORS[severity]}${text}${RESET}`;
 }
 
-export function formatText(report: AuditReport): string {
+export function formatIssue(issue: Issue, useColor = true): string {
+  const prefix = `[${issue.severity.toUpperCase()}]`;
+  const location = issue.file
+    ? ` (${issue.file}${issue.line !== undefined ? `:${issue.line}` : ''})`
+    : '';
+  const message = `${prefix} ${issue.variable}: ${issue.message}${location}`;
+  return useColor ? colorize(message, issue.severity) : message;
+}
+
+export function formatText(report: Report, useColor = true): string {
   const lines: string[] = [];
-  lines.push(chalk.bold(`\nenv-audit Report — ${report.timestamp}`));
-  lines.push(chalk.gray(`Project: ${report.projectRoot}\n`));
+
+  const title = 'env-audit Report';
+  lines.push(useColor ? `${BOLD}${title}${RESET}` : title);
+  lines.push('='.repeat(40));
+  lines.push(`Scanned: ${report.summary.scannedFiles} file(s)`);
+  lines.push(`Env variables defined: ${report.summary.totalDefined}`);
+  lines.push(`Issues found: ${report.summary.totalIssues}`);
+  lines.push('');
 
   if (report.issues.length === 0) {
-    lines.push(chalk.green('✔ No issues found.'));
+    lines.push(useColor ? `\x1b[32mNo issues found.${RESET}` : 'No issues found.');
   } else {
-    report.issues.forEach((issue) => lines.push(formatIssue(issue)));
+    for (const issue of report.issues) {
+      lines.push(formatIssue(issue, useColor));
+    }
   }
 
-  const { totalIssues, errors, warnings, infos } = report.summary;
-  lines.push(
-    `\nSummary: ${totalIssues} issue(s) — ` +
-      chalk.red(`${errors} error(s)`) +
-      ', ' +
-      chalk.yellow(`${warnings} warning(s)`) +
-      ', ' +
-      chalk.cyan(`${infos} info(s)`)
-  );
+  lines.push('');
+  lines.push(`Errors: ${report.summary.errors}  Warnings: ${report.summary.warnings}  Info: ${report.summary.infos}`);
 
   return lines.join('\n');
 }
 
-export function formatJson(report: AuditReport): string {
+export function formatJson(report: Report): string {
   return JSON.stringify(report, null, 2);
 }
