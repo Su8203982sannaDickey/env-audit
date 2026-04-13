@@ -1,52 +1,76 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
-import path from 'path';
-import { parseEnvFilesInDirectory, findDuplicateKeys } from '../parser';
-import { scanDirectoryForEnvUsage } from '../scanner/sourceScanner';
-import { auditEnvVariables } from '../scanner';
-import { buildReport } from '../reporter/reportBuilder';
-import { formatText, formatJson } from '../reporter/formatters';
+import * as path from "path";
+import * as fs from "fs";
+import { parseEnvFilesInDirectory, findDuplicateKeys } from "../parser";
+import { auditEnvVariables } from "../scanner";
+import { buildReport } from "../reporter/reportBuilder";
+import { formatConsole } from "../reporter/consoleFormatter";
+import { formatJson } from "../reporter/jsonFormatter";
+import { formatHtml } from "../reporter/htmlFormatter";
+import { formatMarkdown } from "../reporter/markdownFormatter";
+import { formatCsv } from "../reporter/csvFormatter";
+import { formatXml } from "../reporter/xmlFormatter";
+import { formatYaml } from "../reporter/yamlFormatter";
 
-const program = new Command();
+type OutputFormat = "console" | "json" | "html" | "markdown" | "csv" | "xml" | "yaml";
 
-program
-  .name('env-audit')
-  .description('Audit environment variables across .env files and source code')
-  .version('0.1.0');
+function getFormat(args: string[]): OutputFormat {
+  const idx = args.indexOf("--format");
+  if (idx !== -1 && args[idx + 1]) {
+    return args[idx + 1] as OutputFormat;
+  }
+  return "console";
+}
 
-program
-  .command('audit')
-  .description('Run a full audit on a project directory')
-  .argument('[dir]', 'Project directory to audit', '.')
-  .option('-f, --format <format>', 'Output format: text or json', 'text')
-  .option('--env-dir <envDir>', 'Directory containing .env files (defaults to <dir>)')
-  .option('--src-dir <srcDir>', 'Directory containing source files (defaults to <dir>)')
-  .action(async (dir: string, options: { format: string; envDir?: string; srcDir?: string }) => {
-    const resolvedDir = path.resolve(dir);
-    const envDir = options.envDir ? path.resolve(options.envDir) : resolvedDir;
-    const srcDir = options.srcDir ? path.resolve(options.srcDir) : resolvedDir;
+function getDir(args: string[]): string {
+  const idx = args.indexOf("--dir");
+  if (idx !== -1 && args[idx + 1]) {
+    return path.resolve(args[idx + 1]);
+  }
+  return process.cwd();
+}
 
-    try {
-      const envFiles = await parseEnvFilesInDirectory(envDir);
-      const duplicates = findDuplicateKeys(envFiles);
-      const usages = await scanDirectoryForEnvUsage(srcDir);
-      const auditResult = auditEnvVariables(envFiles, usages);
+function getOutput(args: string[]): string | null {
+  const idx = args.indexOf("--output");
+  if (idx !== -1 && args[idx + 1]) {
+    return args[idx + 1];
+  }
+  return null;
+}
 
-      const report = buildReport({
-        missing: auditResult.missing,
-        duplicates,
-        undocumented: auditResult.undocumented,
-      });
+async function main() {
+  const args = process.argv.slice(2);
+  const dir = getDir(args);
+  const format = getFormat(args);
+  const outputFile = getOutput(args);
 
-      const output =
-        options.format === 'json' ? formatJson(report) : formatText(report);
+  const envData = parseEnvFilesInDirectory(dir);
+  const duplicates = findDuplicateKeys(envData);
+  const auditResult = await auditEnvVariables(dir, envData);
+  const report = buildReport(auditResult, duplicates);
 
-      console.log(output);
-      process.exit(report.summary.totalIssues > 0 ? 1 : 0);
-    } catch (err) {
-      console.error('Error running audit:', (err as Error).message);
-      process.exit(2);
-    }
-  });
+  const formatters: Record<OutputFormat, (r: typeof report) => string> = {
+    console: formatConsole,
+    json: formatJson,
+    html: formatHtml,
+    markdown: formatMarkdown,
+    csv: formatCsv,
+    xml: formatXml,
+    yaml: formatYaml,
+  };
 
-program.parse(process.argv);
+  const formatter = formatters[format] ?? formatConsole;
+  const output = formatter(report);
+
+  if (outputFile) {
+    fs.writeFileSync(outputFile, output, "utf-8");
+    console.log(`Report written to ${outputFile}`);
+  } else {
+    process.stdout.write(output);
+  }
+}
+
+main().catch((err) => {
+  console.error("env-audit error:", err.message);
+  process.exit(1);
+});
