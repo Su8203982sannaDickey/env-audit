@@ -1,119 +1,105 @@
 import * as fs from "fs";
 import * as path from "path";
 import { auditEnvVariables } from "../scanner";
-import {
-  buildReport,
-  formatOutput,
-  formatHtml,
-  formatMarkdown,
-  formatConsole,
-  formatCsv,
-  formatJson,
-  formatXml,
-  formatYaml,
-  formatSarif,
-  formatToml,
-  formatJunit,
-  formatDotenv,
-  formatBadge,
-  formatDiff,
-  formatTable,
-  formatGithubActions,
-  formatCompact,
-  formatTap,
-  formatCheckstyle,
-} from "../reporter";
+import { buildReport } from "../reporter/reportBuilder";
+import { formatOutput } from "../reporter/formatters";
+import { formatHtml } from "../reporter/htmlFormatter";
+import { formatMarkdown } from "../reporter/markdownFormatter";
+import { formatJson } from "../reporter/jsonFormatter";
+import { formatXml } from "../reporter/xmlFormatter";
+import { formatYaml } from "../reporter/yamlFormatter";
+import { formatSarif } from "../reporter/sariffFormatter";
+import { formatToml } from "../reporter/tomlFormatter";
+import { formatJunit } from "../reporter/junitFormatter";
+import { formatDotenv } from "../reporter/dotenvFormatter";
+import { formatBadge } from "../reporter/badgeFormatter";
+import { formatDiff } from "../reporter/diffFormatter";
+import { formatTable } from "../reporter/tableFormatter";
+import { formatGithubActions } from "../reporter/githubActionsFormatter";
+import { formatCompact } from "../reporter/compactFormatter";
+import { formatTap } from "../reporter/tapFormatter";
+import { formatCheckstyle } from "../reporter/checkstyleFormatter";
+import { formatTemplate } from "../reporter/templateFormatter";
+import { formatCodeframe } from "../reporter/codeframeFormatter";
+import { formatGrouped } from "../reporter/groupedFormatter";
+import { formatSonarqube } from "../reporter/sonarqubeFormatter";
+import { formatCsv } from "../reporter/csvFormatter";
+import { formatConsole } from "../reporter/consoleFormatter";
+import { formatTsv } from "../reporter/tsvFormatter";
 import { Report } from "../reporter/types";
 
-export type OutputFormat =
-  | "text"
-  | "json"
-  | "html"
-  | "markdown"
-  | "csv"
-  | "xml"
-  | "yaml"
-  | "sarif"
-  | "toml"
-  | "junit"
-  | "dotenv"
-  | "badge"
-  | "diff"
-  | "table"
-  | "github-actions"
-  | "compact"
-  | "tap"
-  | "checkstyle";
-
-export function getFormat(args: string[]): OutputFormat {
-  const idx = args.indexOf("--format");
-  if (idx !== -1 && args[idx + 1]) {
-    return args[idx + 1] as OutputFormat;
-  }
-  return "text";
+export function getFormat(argv: string[]): string {
+  const idx = argv.indexOf("--format");
+  return idx !== -1 && argv[idx + 1] ? argv[idx + 1] : "console";
 }
 
-export function getDir(args: string[]): string {
-  const idx = args.indexOf("--dir");
-  if (idx !== -1 && args[idx + 1]) {
-    return path.resolve(args[idx + 1]);
-  }
-  return process.cwd();
+export function getDir(argv: string[]): string {
+  const idx = argv.indexOf("--dir");
+  return idx !== -1 && argv[idx + 1] ? argv[idx + 1] : process.cwd();
 }
 
-export function getOutput(args: string[]): string | null {
-  const idx = args.indexOf("--output");
-  if (idx !== -1 && args[idx + 1]) {
-    return path.resolve(args[idx + 1]);
-  }
-  return null;
+export function getOutput(argv: string[]): string | null {
+  const idx = argv.indexOf("--output");
+  return idx !== -1 && argv[idx + 1] ? argv[idx + 1] : null;
 }
 
-export function applyFormat(report: Report, format: OutputFormat): string {
+export function applyFormat(format: string, report: Report, templatePath?: string): string {
   switch (format) {
-    case "json": return formatJson(report);
-    case "html": return formatHtml(report);
-    case "markdown": return formatMarkdown(report);
-    case "csv": return formatCsv(report);
-    case "xml": return formatXml(report);
-    case "yaml": return formatYaml(report);
-    case "sarif": return formatSarif(report);
-    case "toml": return formatToml(report);
-    case "junit": return formatJunit(report);
-    case "dotenv": return formatDotenv(report);
-    case "badge": return formatBadge(report);
-    case "diff": return formatDiff(report);
-    case "table": return formatTable(report);
-    case "github-actions": return formatGithubActions(report);
-    case "compact": return formatCompact(report);
-    case "tap": return formatTap(report);
-    case "checkstyle": return formatCheckstyle(report);
-    case "text":
-    default:
-      return formatConsole(report);
+    case "html":          return formatHtml(report);
+    case "markdown":      return formatMarkdown(report);
+    case "json":          return formatJson(report);
+    case "xml":           return formatXml(report);
+    case "yaml":          return formatYaml(report);
+    case "sarif":         return formatSarif(report);
+    case "toml":          return formatToml(report);
+    case "junit":         return formatJunit(report);
+    case "dotenv":        return formatDotenv(report);
+    case "badge":         return formatBadge(report);
+    case "diff":          return formatDiff(report);
+    case "table":         return formatTable(report);
+    case "github-actions":return formatGithubActions(report);
+    case "compact":       return formatCompact(report);
+    case "tap":           return formatTap(report);
+    case "checkstyle":    return formatCheckstyle(report);
+    case "template":      return formatTemplate(report, templatePath);
+    case "codeframe":     return formatCodeframe(report);
+    case "grouped":       return formatGrouped(report);
+    case "sonarqube":     return formatSonarqube(report);
+    case "csv":           return formatCsv(report);
+    case "tsv":           return formatTsv(report);
+    case "text":          return formatOutput(report);
+    case "console":
+    default:              return formatConsole(report);
   }
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const dir = getDir(args);
-  const format = getFormat(args);
-  const outputFile = getOutput(args);
+async function main(): Promise<void> {
+  const argv = process.argv.slice(2);
+  const format = getFormat(argv);
+  const dir = getDir(argv);
+  const output = getOutput(argv);
+  const templateIdx = argv.indexOf("--template");
+  const templatePath = templateIdx !== -1 && argv[templateIdx + 1]
+    ? argv[templateIdx + 1]
+    : undefined;
 
-  const auditResult = await auditEnvVariables(dir);
-  const report = buildReport(auditResult);
-  const output = applyFormat(report, format);
+  const audit = await auditEnvVariables(dir);
+  const report = buildReport(audit);
+  const formatted = applyFormat(format, report, templatePath);
 
-  if (outputFile) {
-    fs.mkdirSync(path.dirname(outputFile), { recursive: true });
-    fs.writeFileSync(outputFile, output, "utf-8");
-    console.log(`Report written to ${outputFile}`);
+  if (output) {
+    fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true });
+    fs.writeFileSync(output, formatted, "utf-8");
+    console.log(`Report written to ${output}`);
   } else {
-    process.stdout.write(output + "\n");
+    process.stdout.write(formatted);
   }
+
+  const hasErrors = report.summary.errors > 0;
+  process.exit(hasErrors ? 1 : 0);
 }
 
 main().catch((err) => {
   console.error("env-audit error:", err);
-  process.exit(1);
+  process.exit(2);
 });
