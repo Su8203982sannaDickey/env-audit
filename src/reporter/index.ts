@@ -24,4 +24,5 @@ export { formatGrouped } from "./groupedFormatter";
 export { formatSonarqube } from "./sonarqubeFormatter";
 export { formatTsv } from "./tsvFormatter";
 export { formatGlean } from "./gleanFormatter";
-export * from "./types";
+export { formatNdjson } from "./ndjsonFormatter";
+export type { Report, Issue, ReportSummary } from "./types";
