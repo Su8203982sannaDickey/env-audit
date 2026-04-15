@@ -33,6 +33,29 @@ function makeReport(): Report {
   };
 }
 
+/** Returns a Report where all issues share the same variable name, useful for testing deduplication. */
+function makeReportWithDuplicateVariables(): Report {
+  return {
+    issues: [
+      {
+        type: "missing",
+        severity: "error",
+        variable: "DB_URL",
+        message: "Missing in prod",
+        locations: [{ file: "src/db.ts", line: 5 }],
+      },
+      {
+        type: "duplicate",
+        severity: "warning",
+        variable: "DB_URL",
+        message: "Duplicate in env files",
+        locations: [{ file: ".env", line: 2 }],
+      },
+    ],
+    summary: { totalIssues: 2, missing: 1, duplicates: 1, undocumented: 0 },
+  };
+}
+
 describe("computeMetrics", () => {
   it("counts severities correctly", () => {
     const m = computeMetrics(makeReport());
@@ -50,6 +73,11 @@ describe("computeMetrics", () => {
   it("counts unique variables", () => {
     const m = computeMetrics(makeReport());
     expect(m.affectedVariables).toBe(3);
+  });
+
+  it("deduplicates variables that appear in multiple issues", () => {
+    const m = computeMetrics(makeReportWithDuplicateVariables());
+    expect(m.affectedVariables).toBe(1);
   });
 
   it("computes errorRate between 0 and 1", () => {
