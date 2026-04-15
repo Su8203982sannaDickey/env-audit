@@ -13,6 +13,7 @@ export function escapeTsvField(value: string): string {
 
 /**
  * Formats an array of location strings into a single TSV-safe cell.
+ * Each location is represented as "file:line" and joined with "; ".
  */
 export function formatLocations(locations: Issue["locations"]): string {
   if (!locations || locations.length === 0) return "";
@@ -36,12 +37,16 @@ export function formatIssueRow(issue: Issue): string {
 }
 
 /**
+ * Returns the TSV header row string.
+ */
+export function formatTsvHeader(): string {
+  return ["variable", "severity", "type", "message", "locations"].join("\t");
+}
+
+/**
  * Formats a full Report as a TSV string with a header row.
  */
 export function formatTsv(report: Report): string {
-  const header = ["variable", "severity", "type", "message", "locations"].join(
-    "\t"
-  );
   const rows = report.issues.map(formatIssueRow);
-  return [header, ...rows].join("\n") + "\n";
+  return [formatTsvHeader(), ...rows].join("\n") + "\n";
 }
