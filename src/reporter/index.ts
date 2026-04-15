@@ -25,4 +25,7 @@ export { formatSonarqube } from "./sonarqubeFormatter";
 export { formatTsv } from "./tsvFormatter";
 export { formatGlean } from "./gleanFormatter";
 export { formatNdjson } from "./ndjsonFormatter";
-export type { Report, Issue, ReportSummary } from "./types";
+export { formatCyclomatic } from "./cyclomaticFormatter";
+export { formatTrend } from "./trendFormatter";
+export { formatSparkline } from "./sparklineFormatter";
+export { formatLineCount } from "./lineCountFormatter";
