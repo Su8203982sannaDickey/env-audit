@@ -68,4 +68,13 @@ describe("loadPolicy", () => {
     expect(result!.rules).toHaveLength(1);
     expect(result!.rules[0].variable).toBe("VALID");
   });
+
+  it("returns undefined when explicit policy file path does not exist", () => {
+    const dir = makeTempDir();
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const result = loadPolicy(dir, path.join(dir, "nonexistent.json"));
+    expect(result).toBeUndefined();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
 });
