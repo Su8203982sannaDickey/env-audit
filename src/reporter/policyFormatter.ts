@@ -35,6 +35,18 @@ function evaluateRule(rule: PolicyRule, issues: Issue[]): string[] {
   return violations;
 }
 
+/**
+ * Returns the count of policy violations for the given report and policy config.
+ * Useful for programmatic checks without generating a full formatted report.
+ */
+export function countViolations(report: Report, policy?: PolicyConfig): number {
+  if (!policy || policy.rules.length === 0) return 0;
+  return policy.rules.reduce(
+    (sum, rule) => sum + evaluateRule(rule, report.issues).length,
+    0
+  );
+}
+
 export function formatPolicy(report: Report, policy?: PolicyConfig): string {
   const lines: string[] = ["# Policy Audit Report", ""];
 
