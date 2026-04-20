@@ -25,6 +25,14 @@ describe('parseOwnerFile', () => {
     const lines = ['  MY_VAR   @team  '];
     expect(parseOwnerFile(lines)).toEqual([{ pattern: 'MY_VAR', owner: '@team' }]);
   });
+
+  it('skips blank lines', () => {
+    const lines = ['', 'DB_URL @dba', '   ', 'TOKEN @auth'];
+    expect(parseOwnerFile(lines)).toEqual([
+      { pattern: 'DB_URL', owner: '@dba' },
+      { pattern: 'TOKEN', owner: '@auth' },
+    ]);
+  });
 });
 
 describe('loadOwnerConfig', () => {
