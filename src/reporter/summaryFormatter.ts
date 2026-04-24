@@ -24,6 +24,23 @@ function formatCountBlock(
   return `${label}\n${lines.join("\n")}`;
 }
 
+/**
+ * Returns a short one-line summary string suitable for CI log output,
+ * e.g. "env-audit: 3 issues (2 error, 1 warning)".
+ */
+export function formatOneLiner(report: Report): string {
+  const { issues, summary } = report;
+  if (issues.length === 0) {
+    return "env-audit: no issues found";
+  }
+  const severityCounts = countBySeverity(issues);
+  const breakdown = Object.entries(severityCounts)
+    .sort(([, a], [, b]) => b - a)
+    .map(([sev, count]) => `${count} ${sev}`)
+    .join(", ");
+  return `env-audit: ${summary.totalIssues} issue${summary.totalIssues !== 1 ? "s" : ""} (${breakdown})`;
+}
+
 export function formatSummary(report: Report): string {
   const { issues, summary } = report;
 
