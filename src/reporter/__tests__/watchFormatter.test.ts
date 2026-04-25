@@ -29,6 +29,18 @@ describe("fingerprintIssue", () => {
     const issue = makeIssue();
     expect(fingerprintIssue(issue)).toBe("missing:API_KEY:error");
   });
+
+  it("produces distinct keys for issues differing only in variable", () => {
+    const a = makeIssue({ variable: "FOO" });
+    const b = makeIssue({ variable: "BAR" });
+    expect(fingerprintIssue(a)).not.toBe(fingerprintIssue(b));
+  });
+
+  it("produces distinct keys for issues differing only in severity", () => {
+    const a = makeIssue({ severity: "error" });
+    const b = makeIssue({ severity: "warning" });
+    expect(fingerprintIssue(a)).not.toBe(fingerprintIssue(b));
+  });
 });
 
 describe("buildSnapshot", () => {
@@ -51,6 +63,13 @@ describe("buildSnapshot", () => {
     const snap = buildSnapshot(report, prev);
     expect(snap.newIssues).toContain("missing:API_KEY:error");
     expect(snap.resolvedIssues).toContain("missing:OLD_KEY:error");
+  });
+
+  it("returns empty newIssues and resolvedIssues when no previous fingerprints given", () => {
+    const report = makeReport([makeIssue()]);
+    const snap = buildSnapshot(report);
+    expect(snap.newIssues).toHaveLength(0);
+    expect(snap.resolvedIssues).toHaveLength(0);
   });
 });
 
@@ -83,5 +102,11 @@ describe("formatWatch", () => {
     const output = formatWatch(report);
     expect(output).not.toMatch(/New issues/);
     expect(output).not.toMatch(/Resolved issues/);
+  });
+
+  it("reports zero total issues for an empty report", () => {
+    const report = makeReport([]);
+    const output = formatWatch(report);
+    expect(output).toMatch(/Total issues: 0/);
   });
 });
